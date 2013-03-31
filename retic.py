@@ -6,7 +6,7 @@ from exc import UnimplementedException
 def make_importer(typing_context):
     class ReticImporter:
         def __init__(self, path):
-            self.path = path   
+            self.path = path
      
         def find_module(self, fullname):
             qualname = os.path.join(self.path, *fullname.split('.')) + '.py'
@@ -16,18 +16,18 @@ def make_importer(typing_context):
             except IOError:
                 return None
 
-        def get_code(self, fileloc, filename):
+        def get_code(self, fileloc):
             ast = py_parse(fileloc)
             typed_ast = py_typecheck(ast)
-            return compile(typed_ast, filename, 'exec')
+            return compile(typed_ast, fileloc, 'exec')
 
         def is_package(self, fileloc):
             return os.path.isdir(fileloc) and glob.glob(os.path.join(fileloc, '__init__.py*'))
 
         def load_module(self, fullname):    
             qualname = os.path.join(self.path, *fullname.split('.')) + '.py'
-            code = self.get_code(qualname, fullname)
-            ispkg = self.is_package(fullname)
+            code = self.get_code(qualname)
+            ispkg = self.is_package(qualname)
             mod = sys.modules.setdefault(fullname, imp.new_module(fullname))
             mod.__file__ = qualname
             mod.__loader__ = self
@@ -94,4 +94,9 @@ code_context.update(cast_semantics.__dict__)
 if flags.TYPECHECK_IMPORTS:
     sys.path_hooks.append(make_importer(code_context))
 
-exec(code, code_context)
+try:
+    exec(code, code_context)
+finally:
+    # Any possible closedown code 
+    pass
+
