@@ -38,6 +38,17 @@ def retic_typed(ty, error_function='retic_error'):
         return fn
     return tyfn
 
+def retic_fun(args*, ret=Dyn, error_function='retic_error'):
+    def tyfn(fn):
+        spec = inspect.getargspec(fn)
+        posargs = spec.args
+        if len(posargs) != len(args):
+            error_function('Mismatch in number of positional arguments')
+        annotations = dict(zip(posargs, args))
+        annotations['return'] = ret
+        return fn
+    return tyfn
+
 def is_annotation(dec):
     return isinstance(dec, ast.Call) and isinstance(dec.func, ast.Name) and \
         dec.func.id == 'retic_typed'
