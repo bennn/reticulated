@@ -22,36 +22,7 @@ if PY_VERSION == 2:
 elif PY_VERSION == 3:
     from inspect import getfullargspec
 
-### Python 2.7 annotation
-def retic_typed(ty, error_function='retic_error'):
-    def tyfn(fn):
-        if tyinstance(ty, Function):
-            spec = inspect.getargspec(fn)
-            posargs = spec.args
-            if len(posargs) != len(ty.froms):
-                error_function('Mismatch in number of positional arguments')
-            annotations = dict(zip(posargs, ty.froms))
-            annotations['return'] = ty.to
-            fn.__annotations__ = annotations
-        else:
-            error_function('Functions must be annotated with function types')
-        return fn
-    return tyfn
 
-def retic_fun(args*, ret=Dyn, error_function='retic_error'):
-    def tyfn(fn):
-        spec = inspect.getargspec(fn)
-        posargs = spec.args
-        if len(posargs) != len(args):
-            error_function('Mismatch in number of positional arguments')
-        annotations = dict(zip(posargs, args))
-        annotations['return'] = ret
-        return fn
-    return tyfn
-
-def is_annotation(dec):
-    return isinstance(dec, ast.Call) and isinstance(dec.func, ast.Name) and \
-        dec.func.id == 'retic_typed'
 
 ### Types
 class Fixed(object):
@@ -276,6 +247,42 @@ Float = Float()
 Complex = Complex()
 String = String()
 Bool = Bool()
+
+### Python 2.7 annotation
+def retic_typed(ty, error_function='retic_error'):
+    def tyfn(fn):
+        if tyinstance(ty, Function):
+            spec = inspect.getargspec(fn)
+            posargs = spec.args
+            if len(posargs) != len(ty.froms):
+                error_function('Mismatch in number of positional arguments')
+            annotations = dict(zip(posargs, ty.froms))
+            annotations['return'] = ty.to
+            fn.__annotations__ = annotations
+        else:
+            error_function('Functions must be annotated with function types')
+        return fn
+    return tyfn
+
+def is_annotation(dec):
+    return isinstance(dec, ast.Call) and isinstance(dec.func, ast.Name) and \
+        dec.func.id == 'retic_typed'
+
+def retic_fun(*args, ret=Dyn, error_function='retic_error'):
+    def tyfn(fn):
+        spec = inspect.getargspec(fn)
+        posargs = spec.args
+        if len(posargs) != len(args):
+            error_function('Mismatch in number of positional arguments')
+        annotations = dict(zip(posargs, args))
+        annotations['return'] = ret
+        return fn
+    return tyfn
+
+def is_fun_annotation(dec):
+    return isinstance(dec, ast.Call) and isinstance(dec.func, ast.Name) and \
+        dec.func.id == 'retic_fun'
+
 
 UNCALLABLES = [Void, Int, Float, Complex, String, Bool, Dict, List, Tuple, Set]
 

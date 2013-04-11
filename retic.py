@@ -50,11 +50,6 @@ def py_typecheck(py_ast):
     checker = typecheck.Typechecker()
     return checker.typecheck(py_ast)
 
-def reticulate(in_file):
-    mod = py_parse(in_file)
-    mod = py_typecheck(mod)
-    exec(mod, mod.__dict__)
-
 parser = argparse.ArgumentParser(description='Typecheck and run a ' + 
                                  'Python program with type assertions')
 parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', default=False, 
@@ -70,7 +65,7 @@ typings.add_argument('--guarded', dest='semantics', action='store_const', const=
                      help='use the guarded objects runtime semantics')
 typings.set_defaults(semantics='CAC')
 parser.add_argument('program', help='a Python program to be executed')
-parser.add_argument('args', help='arguments to the program in question', nargs="*")
+parser.add_argument('args', help='arguments to the program in question', nargs="*") # This won't actually be argparsed, but is shown at -h for clarity
 
 args = parser.parse_args(sys.argv[1:])
 flags.set(args)

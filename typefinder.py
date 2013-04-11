@@ -86,8 +86,17 @@ class Typefinder(Visitor):
     def visitFunctionDef(self, n):
         annoty = None
         for dec in n.decorator_list:
-            if is_annotation(dec):
+            if is_fun_annotation(dec):
+                aret = Dyn
+                for kwd in dec.keywords:
+                    if kwd.arg == 'ret':
+                        aret = typeparse(kwd.value)
+                        break
+                annoty = Function([typeparse(arg) for arg in dec.args], aret)
+                break
+            elif is_annotation(dec):
                 annoty = typeparse(dec.args[0])
+                break
         argtys = []
         argnames = []
         for arg in n.args.args:
