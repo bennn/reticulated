@@ -40,16 +40,38 @@ def is_annotation(dec):
     return isinstance(dec, ast.Call) and isinstance(dec.func, ast.Name) and \
         dec.func.id == 'retic_typed'
 
-### Metaclass constructor for monotonic objects
-def monotonic(metaclass):
-    class Monotonic(metaclass):
-        monotonic_capable_class = True
-    return Monotonic
-Monotonic = monotonic(type)
-
 def warn(msg, priority):
     if flags.WARNINGS >= priority:
         print('WARNING:', msg)
+
+### Metaclass constructor for monotonic objects
+if flags.SEMANTICS == 'MONO':
+    def monotonic(metaclass):
+        class Monotonic(metaclass):
+            monotonic_capable_class = True
+        return Monotonic
+    Monotonic = monotonic(type)
+        
+    class ReticInjected(object):
+        def __init__(self, value, ty):
+            self.value = value
+            self.ty = ty
+            
+        def project(self, target, msg, line):
+            return retic_cast(self.value, self.ty, target, msg, line=line)
+
+        def __eq__(self, o):
+            return isinstance(o, ReticInjected) \
+                and o.value == self.value \
+                and o.ty == self.ty
+
+        def __str__(self):
+            return '<%s boxed from %s>' % (self.value,  self.ty)
+        __repr__ = __str__
+
+    unwrapped_is_dyn = False
+else:
+    unwrapped_is_dyn = True
 
 ### Types
 class Fixed(object):
@@ -70,9 +92,13 @@ class PyType(object):
 class Void(PyType, Fixed):
     builtin = type(None)
 class Dyn(PyType, Fixed):
-    builtin = None
+    if unwrapped_is_dyn:
+        builtin = None
     def static(self):
         return False
+if not unwrapped_is_dyn:
+    class Py(PyType, Fixed):
+        builtin = None
 class Int(PyType, Fixed):
     builtin = int
 class Float(PyType, Fixed):
@@ -230,14 +256,21 @@ Float = Float()
 Complex = Complex()
 String = String()
 Bool = Bool()
+if unwrapped_is_dyn:
+    unwrapped = Dyn
+else:
+    Py = Py()
+    unwrapped = Py
 
 UNCALLABLES = [Void, Int, Float, Complex, String, Bool, Dict, List, Tuple, Set]
 
 # Utilities
 
 def has_type(val, ty):
-    if tyinstance(ty, Dyn):
+    if tyinstance(ty, unwrapped):
         return True
+    elif not unwrapped_is_dyn and tyinstance(ty, Dyn):
+        return isinstance(ty, ReticInjected)
     elif tyinstance(ty, Void):
         return val == None
     elif tyinstance(ty, Int):
@@ -421,7 +454,7 @@ def normalize(ty):
     elif ty == str:
         return String
     elif ty == None:
-        return Dyn
+        return unwrapped
     elif isinstance(ty, dict):
         nty = {}
         for k in ty:

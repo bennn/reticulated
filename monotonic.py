@@ -1,35 +1,22 @@
-from typing import has_type as retic_has_type, warn as retic_warn
+from typing import has_type as retic_has_type, warn as retic_warn, ReticInjected
 from relations import tymeet as retic_tymeet, Bot as ReticBot
 from exc import UnimplementedException as ReticUnimplementedException
 import typing, inspect
 
-class ReticInjected(object):
-    def __init__(self, value, ty):
-        self.value = value
-        self.ty = ty
-        
-    def project(self, target, msg, line):
-        return retic_cast(self.value, self.ty, target, msg, line=line)
-
-    def __eq__(self, o):
-        return isinstance(o, ReticInjected) \
-            and o.value == self.value \
-            and o.ty == self.ty
-
-    def __str__(self):
-        return '<%s boxed from %s>' % (self.value,  self.ty)
-    __repr__ = __str__
-
 class InternalTypeError(Exception):
     pass
 
-def retic_read_only_attribute(value, mem):
+# Utilities
+def retic_attribute_is_read_only(value, mem):
     current = getattr(value, mem)
     try:
         setattr(value, mem, current)
         return True
     except AttributeError:
         return False
+
+def retic_monotonic_installed(value):
+    return hasattr(value, '__fastsetattr__')
 
 def retic_make_function_wrapper(fun, src_fmls, trg_fmls, src_ret, trg_ret, line):
     assert len(src_fmls) == len(trg_fmls)
@@ -61,7 +48,6 @@ def retic_setup_type(value, ty, line):
         retic_monotonic_cast(value, ty.members, line)
     elif not retic_has_type(value, ty):
         raise InternalTypeError('value %s does not have type %s' % (value, ty))
-
 
 def retic_monotonic_cast(value, members, line):
     monos = {}
@@ -139,9 +125,6 @@ def retic_check(val, trg, msg, line=inspect.currentframe().f_back.f_lineno):
 
 def retic_error(msg, line=inspect.currentframe().f_back.f_lineno):
     assert False, "%s at line %d" % (msg, line)
-
-def retic_monotonic_installed(value):
-    return hasattr(value, '__fastsetattr__')
 
 def retic_getattr_static(val, attr, ty):
     if retic_monotonic_installed(val):
