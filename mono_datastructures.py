@@ -3,7 +3,7 @@ from relations import info_join
 import rtypes
 
 class MonoList(list):
-    def __init__(self, *x, error=None, line=None, type=Dyn):
+    def __init__(self, *x, error=None, line=None, type=rtypes.Dyn):
         super().__init__(*x)
         assert error is not None
         assert line is not None
